@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>河北采购数据看板 · 可吸收骨蜡（颐封）</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;margin:0;background:#eef2f7;color:#1f2937;padding:20px}
+.wrap{max-width:1280px;margin:0 auto}
+header{margin-bottom:16px}
+h1{font-size:22px;margin:0}
+.sub{color:#6b7280;font-size:12.5px;margin-top:3px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;background:#fff;padding:12px 14px;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:16px}
+.filters label{font-size:12.5px;color:#6b7280;margin-right:4px}
+select,input[type=text]{padding:7px 10px;border:1px solid #d8dee6;border-radius:8px;font-size:13px;background:#fff;color:#1f2937}
+input[type=text]{min-width:180px}
+.btn{padding:7px 12px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;cursor:pointer;font-size:13px}
+.btn:hover{background:#eef2f7}
+.cards{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px}
+.card{background:#fff;border-radius:11px;padding:12px 13px;box-shadow:0 1px 3px rgba(0,0,0,.06);border-top:3px solid #0f4c81}
+.cval{font-size:19px;font-weight:700;color:#0f4c81;line-height:1.1}
+.clabel{font-size:11.5px;color:#6b7280;margin-top:5px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.panel{background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.panel h2{font-size:14.5px;margin:0 0 10px}
+.chartbox{height:250px}
+.tablewrap{background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.tablewrap h2{font-size:14.5px;margin:0 0 10px}
+.tabletools{font-size:12px;color:#6b7280;margin-bottom:8px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{padding:7px 9px;border-bottom:1px solid #eef0f3;text-align:left;white-space:nowrap}
+th{background:#f0f4f8;color:#374151;font-weight:600;cursor:pointer;position:sticky;top:0;user-select:none}
+th:hover{background:#e2e8f0}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+td.nm{font-weight:500;max-width:240px;overflow:hidden;text-overflow:ellipsis}
+.badge{padding:2px 8px;border-radius:10px;font-size:11.5px}
+.signed{background:#e7f6ec;color:#1a7f37}
+.unsigned{background:#fde8e8;color:#b42318}
+.pbar{height:7px;border-radius:4px;background:#e5e7eb;width:90px;display:inline-block;vertical-align:middle;overflow:hidden}
+.pfill{height:100%;border-radius:4px}
+.p0{color:#9ca3af}.pover{color:#b45309;font-weight:600}.pnorm{color:#0f4c81}
+.scroll{max-height:560px;overflow:auto;border:1px solid #eef0f3;border-radius:8px}
+.note{font-size:11.5px;color:#6b7280;margin-top:8px;line-height:1.6}
+@media(max-width:1100px){.cards{grid-template-columns:repeat(4,1fr)}.grid{grid-template-columns:1fr}}
+@media(max-width:680px){.cards{grid-template-columns:repeat(2,1fr)}}
+</style></head><body><div class="wrap">
+<header><div><h1>河北采购数据看板 · 可吸收骨蜡（颐封）</h1>
+<div class="sub">京津冀3+N联盟止血材料类医用耗材带量联动采购 · 第一年度 ｜ 数据来源：协议签订与采购统计.xlsx ｜ 生成：2026-08-27 11:53 ｜ 纯离线渲染（无外部依赖）</div></div></header>
+
+<div class="filters">
+<label>地区</label><select id="fRegion"></select>
+<label>签署状态</label><select id="fSign"><option value="全部">全部</option><option value="已签订">已签订</option><option value="未签订">未签订</option></select>
+<label>医院名称</label><input type="text" id="fSearch" placeholder="输入关键字搜索…">
+<button class="btn" id="fReset">重置</button>
+<span id="fCount" class="sub"></span>
+</div>
+
+<div class="cards" id="cards"></div>
+
+<div class="grid">
+<div class="panel"><h2>签约分布情况</h2><div class="chartbox" id="cSign"></div></div>
+<div class="panel"><h2>完成进度分布（已签订）</h2><div class="chartbox" id="cProg"></div></div>
+<div class="panel"><h2>各地区发货金额（元）</h2><div class="chartbox" id="cRegion"></div></div>
+<div class="panel"><h2>发货金额 Top 10 医院</h2><div class="chartbox" id="cTop"></div></div>
+</div>
+
+<div class="tablewrap">
+<h2>明细数据（点击表头排序）</h2>
+<div class="tabletools" id="tTools"></div>
+<div class="scroll"><table id="tbl"><thead><tr>
+<th data-k="name">医院名称</th><th data-k="region">地区</th><th data-k="sign">是否签署</th>
+<th data-k="agr" class="num">协议量</th><th data-k="ordn" class="num">订单数量</th>
+<th data-k="shipn" class="num">发货数量</th><th data-k="amt" class="num">发货金额</th>
+<th data-k="prog" class="num">完成进度</th>
+</tr></thead><tbody id="tbody"></tbody></table></div>
+<div class="note">协议量取"执行协议量"；完成进度 = 发货数量 ÷ 执行协议量（与源表一致，部分医院因订单超量而 &gt;100%）。看板全部数值读取自源表，未做修改；图表为本地 SVG 绘制，无需联网。</div>
+</div></div>
+
+<script>
+const DATA = [{"name": "河北省中医院", "region": "河北省省本级", "sign": "已签订", "agr": 70.0, "ordn": 72.0, "shipn": 72.0, "amt": 85824.0, "prog": 102.86}, {"name": "石家庄市第三医院", "region": "石家庄市", "sign": "已签订", "agr": 2.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "河北省胸科医院（河北省结核病防治院、河北省肺癌防治研究中心）", "region": "河北省省本级", "sign": "已签订", "agr": 5.0, "ordn": 12.0, "shipn": 12.0, "amt": 14304.0, "prog": 240.0}, {"name": "河北医科大学第四医院", "region": "河北省省本级", "sign": "已签订", "agr": 40.0, "ordn": 6.0, "shipn": 6.0, "amt": 3576.0, "prog": 15.0}, {"name": "石家庄医学高等专科学校附属医院", "region": "石家庄市", "sign": "已签订", "agr": 10.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "石家庄市妇幼保健院（石家庄市儿童医院、石家庄市第六医院）", "region": "石家庄市", "sign": "已签订", "agr": 2.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "中国人民解放军联勤保障部队第九八〇医院", "region": "河北省省本级", "sign": "已签订", "agr": 15.0, "ordn": 34.0, "shipn": 34.0, "amt": 40528.0, "prog": 226.67}, {"name": "河北医科大学第二医院", "region": "河北省省本级", "sign": "已签订", "agr": 50.0, "ordn": 66.0, "shipn": 66.0, "amt": 78076.0, "prog": 132.0}, {"name": "河北省人民医院", "region": "河北省省本级", "sign": "已签订", "agr": 10.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "高邑县医院", "region": "高邑县", "sign": "已签订", "agr": 1.0, "ordn": 24.0, "shipn": 24.0, "amt": 14304.0, "prog": 2400.0}, {"name": "平山县人民医院", "region": "平山县", "sign": "已签订", "agr": 5.0, "ordn": 24.0, "shipn": 24.0, "amt": 28608.0, "prog": 480.0}, {"name": "赵县人民医院", "region": "赵县", "sign": "未签订", "agr": 0.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "辛集市第一医院", "region": "辛集市", "sign": "已签订", "agr": 40.0, "ordn": 7.0, "shipn": 7.0, "amt": 8344.0, "prog": 17.5}, {"name": "辛集市中医院", "region": "辛集市", "sign": "已签订", "agr": 3.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "新乐市中医医院", "region": "新乐市", "sign": "已签订", "agr": 12.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "唐山市人民医院（唐山市肿瘤医院唐山市人民医院互联网医院）", "region": "唐山市", "sign": "已签订", "agr": 10.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "唐山市第二医院 唐山市骨科医院，唐山市第二医院启奥互联网医院", "region": "唐山市", "sign": "已签订", "agr": 10.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "开滦总医院  开滦总医院国药乐仁堂互联网医院", "region": "唐山市", "sign": "已签订", "agr": 4.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "玉田县中医医院", "region": "玉田县", "sign": "已签订", "agr": 35.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "滦州市人民医院", "region": "滦州市", "sign": "已签订", "agr": 1.0, "ordn": 1.0, "shipn": 1.0, "amt": 596.0, "prog": 100.0}, {"name": "北京大学第三医院秦皇岛医院", "region": "秦皇岛市", "sign": "已签订", "agr": 3.0, "ordn": 5.0, "shipn": 5.0, "amt": 5364.0, "prog": 166.67}, {"name": "秦皇岛经济技术开发区医院", "region": "经济技术开发区", "sign": "已签订", "agr": 1.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "邯郸市第二医院", "region": "邯郸市", "sign": "已签订", "agr": 5.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "邯郸市人民医院", "region": "邯郸市", "sign": "已签订", "agr": 1.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "邯郸邯钢医院", "region": "邯郸市", "sign": "已签订", "agr": 20.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "邯郸市第一医院", "region": "邯郸市", "sign": "已签订", "agr": 10.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "华北医疗健康集团峰峰总医院", "region": "邯郸市", "sign": "未签订", "agr": 5.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "邯郸市肥乡区中医骨科医院", "region": "肥乡区", "sign": "已签订", "agr": 1.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "邯郸市永年区第一医院", "region": "永年区", "sign": "已签订", "agr": 5.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "磁县人民医院", "region": "磁县", "sign": "已签订", "agr": 20.0, "ordn": 36.0, "shipn": 36.0, "amt": 21456.0, "prog": 180.0}, {"name": "磁县中医院", "region": "磁县", "sign": "已签订", "agr": 4.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "鸡泽县中医院", "region": "鸡泽县", "sign": "已签订", "agr": 2.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "华北医疗健康集团邢台总医院  邢台市骨科医院", "region": "邢台市", "sign": "已签订", "agr": 100.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "邢台市信都区人民医院", "region": "信都区", "sign": "已签订", "agr": 10.0, "ordn": 3.0, "shipn": 3.0, "amt": 3576.0, "prog": 30.0}, {"name": "柏乡县中心医院", "region": "柏乡县", "sign": "已签订", "agr": 1.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "宁晋县中西医结合医院", "region": "宁晋县", "sign": "已签订", "agr": 18.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "临西县第二人民医院", "region": "临西县", "sign": "未签订", "agr": 5.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "保定市第二医院（保定市老年医院）", "region": "保定市", "sign": "已签订", "agr": 20.0, "ordn": 2.0, "shipn": 2.0, "amt": 1788.0, "prog": 10.0}, {"name": "保定市第一医院", "region": "保定市", "sign": "已签订", "agr": 1.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "保定市第一中心医院（保定市急救中心、保定市紧急医疗救援指挥中心）", "region": "保定市", "sign": "已签订", "agr": 5.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "广安门医院保定医院（保定市第一中医院）", "region": "保定市", "sign": "未签订", "agr": 1.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "定兴县医院", "region": "定兴县", "sign": "已签订", "agr": 4.0, "ordn": 10.0, "shipn": 10.0, "amt": 11920.0, "prog": 250.0}, {"name": "容城县中医医院", "region": "容城县", "sign": "已签订", "agr": 1.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "保定市第二中心医院", "region": "保定市", "sign": "已签订", "agr": 100.0, "ordn": 1.0, "shipn": 1.0, "amt": 596.0, "prog": 1.0}, {"name": "张家口市下花园区医院", "region": "下花园区", "sign": "已签订", "agr": 1.0, "ordn": 4.0, "shipn": 4.0, "amt": 4768.0, "prog": 200.0}, {"name": "北京大学第三医院崇礼院区（张家口市崇礼区人民医院）", "region": "崇礼区", "sign": "已签订", "agr": 20.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "蔚县中医院第二分院", "region": "蔚县", "sign": "已签订", "agr": 1.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "承德市第四医院（承德市精神病医院）", "region": "双滦区", "sign": "未签订", "agr": 2.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "沧县医院", "region": "沧县", "sign": "已签订", "agr": 5.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "海兴县医院", "region": "海兴县", "sign": "未签订", "agr": 1.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "黄骅市骨科医院", "region": "黄骅市", "sign": "已签订", "agr": 5.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "黄骅市中医医院", "region": "黄骅市", "sign": "已签订", "agr": 2.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "河间市人民医院", "region": "河间市", "sign": "已签订", "agr": 800.0, "ordn": 9.0, "shipn": 9.0, "amt": 5960.0, "prog": 1.12}, {"name": "大城县医院", "region": "大城县", "sign": "已签订", "agr": 5.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "大城县中医医院", "region": "大城县", "sign": "已签订", "agr": 1.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "河北燕达医院", "region": "三河市", "sign": "已签订", "agr": 200.0, "ordn": 3.0, "shipn": 3.0, "amt": 3576.0, "prog": 1.5}, {"name": "三河市中医医院", "region": "三河市", "sign": "已签订", "agr": 3.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "景州德济医院", "region": "景县", "sign": "未签订", "agr": 5.0, "ordn": 0.0, "shipn": 0.0, "amt": 0.0, "prog": 0.0}, {"name": "深州市中西医结合医院", "region": "深州市", "sign": "已签订", "agr": 2.0, "ordn": 12.0, "shipn": 12.0, "amt": 7152.0, "prog": 600.0}];
+const state={region:'全部',sign:'全部',q:'',sortKey:'amt',sortDir:-1};
+const fmt=n=>(Math.round(n*100)/100).toLocaleString('zh-CN');
+const fmtK=v=>{ if(v>=10000)return '¥'+(v/10000).toFixed(v%10000?1:0)+'w'; if(v>=1000)return '¥'+(v/1000).toFixed(v%1000?1:0)+'k'; return Math.round(v).toLocaleString('zh-CN'); };
+function filtered(){ return DATA.filter(d=>{
+  if(state.region!=='全部'&&d.region!==state.region)return false;
+  if(state.sign!=='全部'&&d.sign!==state.sign)return false;
+  if(state.q&&!d.name.includes(state.q))return false; return true; }); }
+function agg(rows){ const o={n:rows.length,signed:rows.filter(d=>d.sign==='已签订').length,agr:0,ordn:0,shipn:0,amt:0};
+  rows.forEach(d=>{o.agr+=d.agr;o.ordn+=d.ordn;o.shipn+=d.shipn;o.amt+=d.amt;});
+  return o; }
+function renderCards(rows){ const a=agg(rows);
+  const cards=[['医疗机构',a.n+' 家'],['已签订/未签订',a.signed+' / '+(a.n-a.signed)],
+    ['协议量合计',fmt(a.agr)],['订单数量合计',fmt(a.ordn)],['发货数量合计',fmt(a.shipn)],
+    ['发货金额合计','¥'+fmt(a.amt)]];
+  document.getElementById('cards').innerHTML=cards.map(c=>`<div class="card"><div class="cval">${c[1]}</div><div class="clabel">${c[0]}</div></div>`).join(''); }
+
+function donut(el,segs){ const total=segs.reduce((s,x)=>s+x.value,0);
+  if(total===0){el.innerHTML='<div style="color:#9ca3af;font-size:13px;padding-top:40px;text-align:center">无数据</div>';return;}
+  let acc=0,parts=[]; segs.forEach(sg=>{const f=sg.value/total,a0=acc*360,a1=(acc+f)*360;acc+=f;parts.push(`${sg.color} ${a0}deg ${a1}deg`);});
+  el.innerHTML=`<div style="display:flex;align-items:center;gap:16px;height:100%"><div style="width:128px;height:128px;border-radius:50%;background:conic-gradient(${parts.join(',')});position:relative;flex:0 0 auto"><div style="position:absolute;inset:34px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#0f4c81">${total}</div></div><div style="font-size:12.5px">${segs.map(s=>`<div style="margin:4px 0"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${s.color};margin-right:6px"></span>${s.label}：${s.value}</div>`).join('')}</div></div>`; }
+
+function svgVBar(el,labels,values,color){ if(!values.length){el.innerHTML='<div style="color:#9ca3af;font-size:13px;padding-top:40px;text-align:center">无数据</div>';return;}
+  const W=360,H=240,padL=44,padB=48,padT=16,padR=12,pw=W-padL-padR,ph=H-padT-padB,max=Math.max(1,...values),n=values.length;
+  const bw=Math.min(48,pw/n*0.66),gap=(pw-bw*n)/(n+1); let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" height="100%">`;
+  for(let i=0;i<=4;i++){const y=padT+ph*(i/4),v=max*(1-i/4); s+=`<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W-padR}" y2="${y.toFixed(1)}" stroke="#eef0f3"/><text x="${padL-5}" y="${(y+3).toFixed(1)}" font-size="9" fill="#9ca3af" text-anchor="end">${Math.round(v)}</text>`;}
+  values.forEach((v,i)=>{const x=padL+gap+bw*i,h=Math.max(1,ph*(v/max)),y=padT+ph-h;
+    s+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="${color}"/>`;
+    s+=`<text x="${(x+bw/2).toFixed(1)}" y="${(y-4).toFixed(1)}" font-size="9" fill="#374151" text-anchor="middle">${Math.round(v)}</text>`;
+    let lab=labels[i]; if(lab.length>7)lab=lab.slice(0,7)+'…'; s+=`<text x="${(x+bw/2).toFixed(1)}" y="${padT+ph+14}" font-size="9" fill="#6b7280" text-anchor="middle">${lab}</text>`;});
+  s+='</svg>'; el.innerHTML=s; }
+
+function svgHBar(el,labels,values,color){ if(!values.length){el.innerHTML='<div style="color:#9ca3af;font-size:13px;padding-top:40px;text-align:center">无数据</div>';return;}
+  const rowH=22,padL=120,padR=54,padT=8,W=360,pw=W-padL-padR,max=Math.max(1,...values),H=Math.max(70,padT*2+values.length*rowH);
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" height="100%">`;
+  values.forEach((v,i)=>{const y=padT+rowH*i,barY=y+rowH/2-7,w=Math.max(1,pw*(v/max));
+    let lab=labels[i]; if(lab.length>11)lab=lab.slice(0,11)+'…';
+    s+=`<text x="${padL-6}" y="${barY+9}" font-size="10" fill="#374151" text-anchor="end">${lab}</text>`;
+    s+=`<rect x="${padL}" y="${barY}" width="${w.toFixed(1)}" height="14" rx="3" fill="${color}"/>`;
+    s+=`<text x="${(padL+w+5).toFixed(1)}" y="${barY+10}" font-size="9" fill="#6b7280">${fmtK(v)}</text>`;});
+  s+='</svg>'; el.innerHTML=s; }
+
+function renderCharts(rows){
+  donut(document.getElementById('cSign'),[{label:'已签订',value:rows.filter(d=>d.sign==='已签订').length,color:'#1a7f37'},{label:'未签订',value:rows.filter(d=>d.sign==='未签订').length,color:'#b42318'}]);
+  const b={'未启动(0%)':0,'0–50%':0,'50–100%':0,'超额(>100%)':0};
+  rows.filter(d=>d.sign==='已签订').forEach(d=>{ if(d.prog<=0)b['未启动(0%)']++; else if(d.prog<50)b['0–50%']++; else if(d.prog<100)b['50–100%']++; else b['超额(>100%)']++; });
+  svgVBar(document.getElementById('cProg'),Object.keys(b),Object.values(b),'#0f4c81');
+  const rm={}; rows.forEach(d=>{rm[d.region]=(rm[d.region]||0)+d.amt;});
+  const rk=Object.entries(rm).sort((a,b)=>b[1]-a[1]);
+  svgVBar(document.getElementById('cRegion'),rk.map(x=>x[0]),rk.map(x=>Math.round(x[1])),'#2563eb');
+  const top=rows.filter(d=>d.amt>0).sort((a,b)=>b.amt-a.amt).slice(0,10);
+  svgHBar(document.getElementById('cTop'),top.map(d=>d.name),top.map(d=>Math.round(d.amt)),'#0e7490');
+}
+function progColor(p){return p<=0?'#9ca3af':(p>=100?'#b45309':'#0f4c81');}
+function renderTable(rows){ const sk=state.sortKey,sd=state.sortDir;
+  const arr=[...rows].sort((a,b)=>{const x=a[sk],y=b[sk]; if(typeof x==='string')return x.localeCompare(y,'zh')*sd; return (x-y)*sd;});
+  document.getElementById('tbody').innerHTML=arr.map(d=>{const w=Math.min(100,d.prog),col=progColor(d.prog),pc=d.prog<=0?'p0':(d.prog>=100?'pover':'pnorm');
+    return `<tr><td class="nm" title="${d.name}">${d.name}</td><td>${d.region}</td><td><span class="badge ${d.sign==='已签订'?'signed':'unsigned'}">${d.sign}</span></td>
+    <td class="num">${fmt(d.agr)}</td><td class="num">${fmt(d.ordn)}</td><td class="num">${fmt(d.shipn)}</td><td class="num">¥${fmt(d.amt)}</td>
+    <td class="num ${pc}"><span class="pbar"><span class="pfill" style="width:${w}%;background:${col}"></span></span> ${d.prog.toFixed(1)}%</td></tr>`;}).join('');
+  const a=agg(rows); document.getElementById('tTools').textContent=`当前显示 ${rows.length} 家 ｜ 协议量 ${fmt(a.agr)} ｜ 发货 ${fmt(a.shipn)} ｜ 发货金额 ¥${fmt(a.amt)}`; }
+
+function render(){ const rows=filtered(); renderCards(rows); try{renderCharts(rows);}catch(e){console.error(e);} renderTable(rows); document.getElementById('fCount').textContent=`共 ${rows.length} 家`; }
+
+const regions=[...new Set(DATA.map(d=>d.region))].sort();
+const sel=document.getElementById('fRegion');
+sel.innerHTML='<option value="全部">全部</option>'+regions.map(r=>`<option value="${r}">${r}</option>`).join('');
+sel.onchange=e=>{state.region=e.target.value;render();};
+document.getElementById('fSign').onchange=e=>{state.sign=e.target.value;render();};
+document.getElementById('fSearch').oninput=e=>{state.q=e.target.value.trim();render();};
+document.getElementById('fReset').onclick=()=>{state.region='全部';state.sign='全部';state.q='';sel.value='全部';document.getElementById('fSign').value='全部';document.getElementById('fSearch').value='';render();};
+document.querySelectorAll('th[data-k]').forEach(th=>th.onclick=()=>{const k=th.dataset.k; if(state.sortKey===k)state.sortDir*=-1; else {state.sortKey=k;state.sortDir=-1;} renderTable(filtered());});
+render();
+</script></body></html>
